@@ -8,20 +8,6 @@ from save_to_csv import SaveData
 from truck import Truck
 
 
-def print_all_rucks():
-    print(f'truck: {truck1.truck_id} minutes: {truck1.minutes_traveled}')
-    for item in truck1.packages:
-        print(f'package: {item}')
-
-    print(f'truck: {truck2.truck_id} minutes: {truck2.minutes_traveled}')
-    for item in truck2.packages:
-        print(f'package: {item}')
-
-    print(f'truck: {truck3.truck_id} minutes: {truck3.minutes_traveled}')
-    for item in truck3.packages:
-        print(f'package: {item}')
-
-
 def next_package(current_package_id):
     current_distance_id = 0
     index_of_current_package = distanceIndexMatch[packageDataTable[current_package_id].address]
@@ -49,8 +35,9 @@ def load_truck1():
         return
     else:
         for key, value in packageDataTable.items():
-            if value.delivery_status == "At The Hub" and len(
-                    truck1.packages) < truck1.max_packages and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am":
+            if (value.delivery_status == "At The Hub"
+                    and len(truck1.packages) < truck1.max_packages
+                    and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am"):
                 if value.notes == "Must be delivered with 13, 15" or value.notes == "Must be delivered with 15, 19":
                     update_package(key, truck1)
                 elif (value.deadline != datetime.strptime("5:00 PM", "%I:%M %p")
@@ -63,7 +50,8 @@ def load_truck1():
                         update_package(key, truck1)
                     elif truck1.packages and key not in assigned_packages:
                         next_package_truck1 = next_package(truck1.packages[-1])
-                        if packageDataTable[next_package_truck1].delivery_status == "At The Hub":
+                        if (packageDataTable[next_package_truck1].delivery_status == "At The Hub"
+                                and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am"):
                             update_package(next_package_truck1, truck1)
 
 
@@ -71,6 +59,7 @@ def load_truck2():
     if len(truck2.packages) >= truck2.max_packages or len(assigned_packages.items()) == len(packageDataTable.items()):
         return
     else:
+        update_package('32', truck2)
         for key, value in packageDataTable.items():
             if (value.delivery_status == "At The Hub"
                     and len(truck2.packages) < truck2.max_packages and value.notes != "Wrong address listed"):
@@ -123,15 +112,40 @@ def deliver_next_package(truck):
                          int(distanceIndexMatch[packageDataTable[shortest_distance_package_id].address]))
         truck.miles_traveled = truck.miles_traveled + shortest_distance
         packageDataTable[shortest_distance_package_id].time_delivered = (
-                datetime.strptime("8:00 AM", "%I:%M %p") + timedelta(minutes=truck.minutes_traveled)
+                truck.start_delivery_time + timedelta(minutes=truck.minutes_traveled)
         )
         truck.current_location_id = int(distanceIndexMatch[packageDataTable[shortest_distance_package_id].address])
         return shortest_distance_package_id
 
 
+def start_delivery_route(truck):
+    start_route_time = datetime.strptime("8:00 AM", "%I:%M %p")
+    for item in truck.packages:
+        if packageDataTable[item].available > start_route_time:
+            start_route_time = packageDataTable[item].available
+    truck.start_delivery_time = start_route_time
+
+
 def delivery_route(truck):
+    start_delivery_route(truck)
     for item in truck.packages:
         deliver_next_package(truck)
+
+
+def change_trucks(truck_current, truck_next):
+    truck_current_last_package_delivered = '0'
+    latest_delivery_time = datetime.strptime("8:00 AM", "%I:%M %p")
+    for item in truck_current.packages:
+        if packageDataTable[item].time_delivered > latest_delivery_time:
+            latest_delivery_time = packageDataTable[item].time_delivered
+            truck_current_last_package_delivered = item
+    truck_current_return_minutes = distance_matrix[int(distanceIndexMatch[packageDataTable[truck_current_last_package_delivered].address])][0]
+    truck_current_return_time = latest_delivery_time + timedelta(minutes=truck_current_return_minutes)
+    if truck_next.start_delivery_time < truck_current_return_time:
+        truck_next.start_delivery_time = truck_current_return_time
+        truck_next.driver = truck_current.driver
+    else:
+        truck_next.driver = truck_current.driver
 
 
 # set global variable for the maximum travel distance allowed and the number of packages that need to be delivered
@@ -159,12 +173,13 @@ truck3 = Truck(3, None)
 data_loader = LoadData()
 data_loader.load_data_csv(distanceIndexMatch, distance_matrix, packageDataTable)
 
-for _ in packageDataTable:
-    load_truck1()
-    load_truck2()
-    load_truck3()
+
+load_truck1()
 delivery_route(truck1)
+load_truck2()
 delivery_route(truck2)
+change_trucks(truck1, truck3)
+load_truck3()
 delivery_route(truck3)
 
 data_saver = SaveData()
@@ -188,3 +203,8 @@ print(
     f"Number of items in the truck3.packages list: {len(truck3.packages)} minutes: {truck3.minutes_traveled} miles: {truck3.miles_traveled}")
 for items in truck3.packages:
     print(f'package info: {items} id: {packageDataTable[items].delivery_status}')
+
+for key, value in packageDataTable.items():
+    if key is not None:
+        print(
+            f'truck: {value.truck.truck_id} package info: {key} status: {value.delivery_status} time: {value.time_delivered.strftime("%I:%M %p")}')

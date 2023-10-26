@@ -11,7 +11,7 @@ class SaveData:
 
             # Define the header row with attribute names
             header = ["package_id", "address", "city", "state", "zip", "deadline", "weight", "notes", "available",
-                      "delivery_status", "truck"]
+                      "delivery_status", "truck", "delivery_time"]
             writer.writerow(header)
 
             # Iterate through the objects in your HashTable
@@ -29,7 +29,8 @@ class SaveData:
                     package.notes,
                     package.available.strftime("%I:%M %p"),
                     package.delivery_status,
-                    truck_id
+                    truck_id,
+                    package.time_delivered
                 ]
 
                 # Write the data for the current package
