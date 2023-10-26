@@ -3,6 +3,8 @@ import csv
 
 from package import Package
 
+# Loads the data from the provide csv's using the csv library
+# Instantiated and called in main.py
 
 class LoadData:
     def __init__(self):

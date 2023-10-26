@@ -22,10 +22,6 @@ class Package:
         self.truck = truck
         self.time_delivered = time_delivered
 
-    # function to return the full address
-    def full_address(self):
-        return self.address + "," + self.city + "," + self.state + "," + self.zip
-
     # define the __hash__() method - returns the hash of the package_id
     def __hash__(self):
         return hash(self.package_id)
