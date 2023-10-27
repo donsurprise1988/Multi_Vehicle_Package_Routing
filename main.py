@@ -1,5 +1,6 @@
 # 010722931
 from datetime import datetime, timedelta
+import re
 
 from hashtable import HashTable
 from load_data_from_csv import LoadData
@@ -21,7 +22,7 @@ def next_package(current_package_id):
         if key not in assigned_packages:
             index_of_next_package = distanceIndexMatch[packageDataTable[key].address]
             current_distance = distance_matrix[int(index_of_current_package)][int(index_of_next_package)]
-            if current_distance <= shortest_distance and key not in assigned_packages:
+            if current_distance < shortest_distance and key not in assigned_packages and value.notes != "Wrong address listed":
                 shortest_distance = current_distance
                 shortest_distance_package_id = key
     return shortest_distance_package_id
@@ -47,7 +48,8 @@ def load_truck1():
             if (value.delivery_status == "At The Hub"  # Filter for only packages that are At The Hub
                     and len(truck1.packages) < truck1.max_packages  # packages in truck must be lower than max allowed
                     # I did not want delayed packages to be included. I want truck 1 to leave at 8AM
-                    and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am"):
+                    and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am")\
+                    and value.notes != "Wrong address listed":
                 if value.notes == "Must be delivered with 13, 15" or value.notes == "Must be delivered with 15, 19":
                     update_package(key, truck1)  # loads packages that should be delivered together
                 elif (value.deadline != datetime.strptime("5:00 PM", "%I:%M %p")
@@ -58,11 +60,14 @@ def load_truck1():
                       and value.notes != "Wrong address listed"):
                     if value.address in truck1.packages:
                         # loads other packages that are not for truck 2, not delayed, or don't have wrong address
-                        update_package(key, truck1)
-                    elif truck1.packages and key not in assigned_packages:
+                        if value.notes != "Wrong address listed":
+                            update_package(key, truck1)
+                    elif (truck1.packages and key not in assigned_packages
+                          and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am"):
                         next_package_truck1 = next_package(truck1.packages[-1])
-                        if (packageDataTable[next_package_truck1].delivery_status == "At The Hub"
-                                and value.notes != "Delayed on flight---will not arrive to depot until 9:05 am"):
+                        if ((packageDataTable[next_package_truck1].delivery_status == "At The Hub"
+                                and packageDataTable[next_package_truck1].notes != "Delayed on flight---will not arrive to depot until 9:05 am")
+                                and value.notes != "Wrong address listed"):
                             # after loaded the preferred packages above
                             # it then uses the next closes package to load next package
                             update_package(next_package_truck1, truck1)
@@ -75,23 +80,33 @@ def load_truck2():
     if len(truck2.packages) >= truck2.max_packages or len(assigned_packages.items()) == len(packageDataTable.items()):
         return
     else:
-        update_package('32', truck2) # include package 32 manually in truck 2
+        update_package('32', truck2)  # include package 32 manually in truck 2
         for key, value in packageDataTable.items():  # iterates through the Package id and objects
             if (value.delivery_status == "At The Hub"  # Filter for only packages that are At The Hub
-                    and len(truck2.packages) < truck2.max_packages # packages in truck must be lower than max allowed
-                    and value.notes != "Wrong address listed"): # packages can't have wrong address
+                    and len(truck2.packages) < truck2.max_packages  # packages in truck must be lower than max allowed
+                    and value.notes != "Wrong address listed"):  # packages can't have wrong address
                 if value.notes == "Can only be on truck 2":
                     update_package(key, truck2)  # load packages that are for truck 2
                 elif value.notes == "Delayed on flight---will not arrive to depot until 9:05 am":
                     update_package(key, truck2)  # load packages that are delayed
                 elif value.address in truck2.packages:
                     update_package(key, truck2)  # load packages that share the same address as those already loaded
-                elif truck2.packages and key not in assigned_packages:
+                elif truck2.packages:
                     next_package_truck2 = next_package(truck2.packages[-1])
                     if packageDataTable[next_package_truck2].delivery_status == "At The Hub":
                         # after loaded the preferred packages above
                         # it then uses the next closes package to load next package
                         update_package(next_package_truck2, truck2)
+    while len(truck2.packages) < truck2.max_packages:
+        for key, value in packageDataTable.items():  # iterates through the Package id and objects
+            # filters for packages that are still unloaded and to make sure max capacity is not reached
+            if (value.delivery_status == "At The Hub"
+                    and value.notes != "Wrong address listed"
+                    and len(truck2.packages) < truck2.max_packages):
+                if truck2.packages and key not in assigned_packages:
+                    update_package(key, truck2)
+                elif key not in assigned_packages and value.delivery_status == "At The Hub":
+                    update_package(key, truck2)
 
 
 # Function to load packages on Truck 3 based on the requirements from the WGUPS package file
@@ -119,6 +134,14 @@ def minutes_traveled(truck, location_id_from, location_id_to):
     truck.minutes_traveled += minutes  # minutes are added to the truck objects minutes attribute
 
 
+def update_delivered_package(package_id, truck, shortest_distance):
+    packageDataTable[package_id].delivery_status = "Delivered"
+    minutes_traveled(truck, truck.current_location_id, int(distanceIndexMatch[packageDataTable[package_id].address]))
+    truck.miles_traveled = truck.miles_traveled + shortest_distance
+    packageDataTable[package_id].time_delivered = truck.start_delivery_time + timedelta(minutes=truck.minutes_traveled)
+    truck.current_location_id = int(distanceIndexMatch[packageDataTable[package_id].address])
+
+
 # Greedy algorithm that iterates through truck object packages to find the next shortest distance package to deliver
 # it uses the truck object to look at the packages that are on the truck, filter out packages that are already delivered
 # it uses the distance_matrix to find the distance and compare it to the other distances
@@ -135,15 +158,10 @@ def deliver_next_package(truck):
             shortest_distance = distance_for_this_trip
             shortest_distance_package_id = package_id
     if shortest_distance_package_id is not None:
+        update_delivered_package(shortest_distance_package_id, truck, shortest_distance)
         packageDataTable[shortest_distance_package_id].delivery_status = "Delivered"
-        minutes_traveled(truck, truck.current_location_id,
-                         int(distanceIndexMatch[packageDataTable[shortest_distance_package_id].address]))
-        truck.miles_traveled = truck.miles_traveled + shortest_distance
-        packageDataTable[shortest_distance_package_id].time_delivered = (
-                truck.start_delivery_time + timedelta(minutes=truck.minutes_traveled)
-        )
-        truck.current_location_id = int(distanceIndexMatch[packageDataTable[shortest_distance_package_id].address])
         return shortest_distance_package_id
+
 
 # Function to set delivery start time based on the latest time that a package on the truck becomes available
 # It's used by the delivery_route function to set the start time for the deliveries
@@ -153,7 +171,9 @@ def start_delivery_route(truck):
         # Iterates through Truck packages to find the latest time a package is available
         if packageDataTable[item].available > start_route_time:
             start_route_time = packageDataTable[item].available
+            print(f"Package {packageDataTable[item].package_id} start route time: {start_route_time} ")
     truck.start_delivery_time = start_route_time
+    print(f"truck {truck.truck_id} start delivery time: {truck.start_delivery_time}")
 
 
 # Uses the start delivery route function to set the start time for the delivery
@@ -184,10 +204,90 @@ def change_trucks(truck_current, truck_next):
     if truck_next.start_delivery_time < truck_current_return_time:
         # If it is, it then sets the earliest that the next start can deliver to the time that the current truck arrives
         truck_next.start_delivery_time = truck_current_return_time
-        truck_next.driver = truck_current.driver # sets the driver to the new truck
+        truck_next.driver = truck_current.driver  # sets the driver to the new truck
     # If not, it keeps the time the same and just sets the driver
     else:
         truck_next.driver = truck_current.driver
+
+
+# DIsplays the mileage by truck and total mileage for all trucks
+def display_total_mileage():
+    print("\nTotal Miles Traveled By Truck")
+    print(f"Truck 1 total miles traveled: {round(truck1.miles_traveled, 2)} ")
+    print(f"Truck 2 total miles traveled: {round(truck2.miles_traveled, 2)} ")
+    print(f"Truck 3 total miles traveled: {round(truck3.miles_traveled, 2)} ")
+    print(
+        f"Total Miles Traveled for All Trucks: {round(truck1.miles_traveled + truck2.miles_traveled + truck3.miles_traveled, 2)}")
+
+
+def update_package_9():
+    packageDataTable['9'].address = "410 S.StateSt."
+    packageDataTable['9'].city = "Salt Lake City"
+    packageDataTable['9'].state = "UT"
+    packageDataTable['9'].zip = "84111"
+
+
+def display_package_status(time_in, selected_package_id):
+    id = selected_package_id
+    time_input = datetime.strptime(time_in, "%I:%M %p")
+    status = None
+    truck = assigned_packages[id].truck_id
+    if time_input >= datetime.strptime("10:20 AM", "%I:%M %p"):
+        # update package 9 with correct address
+        update_package_9()
+    if time_input >= packageDataTable[id].time_delivered:
+        status = "Delivered"
+    elif ((truck == 1 and truck1.start_delivery_time < time_input)
+          or (truck == 2 and truck2.start_delivery_time < time_input)
+          or (truck == 1 and truck1.start_delivery_time < time_input)):
+        status = "En Route"
+    else:
+        status = "At The Hub"
+    print(f"\nInformation regarding your selected package as of : {time_input.strftime("%I:%M %p")}")
+    if status == "Delivered":
+        print(f"Package ID:{selected_package_id}")
+        print(f"Status: {status} at {packageDataTable[id].time_delivered.strftime("%I:%M %p")}")
+    else:
+        print(f"Package ID:{selected_package_id} \nStatus: {status} as of {time_input.strftime("%I:%M %p")}")
+
+
+# Provide an intuitive interface for the user to view the delivery status (including the delivery time) of any package
+# at any time and the total mileage traveled by all trucks. (The delivery status should report the package as
+# at the hub, en route, or delivered. Delivery status must include the time.)
+def menu():
+    time_input = None
+    selected_package_id = None
+    while True:
+        print("\nMenu")
+        print("1. View Package Delivery Status")
+        print("2. View Total Mileage Traveled by All Trucks")
+        print("3. Exit")
+        menu_choice = input("\nPlease enter your choice as 1, 2, or 3:")
+        if menu_choice == "1":
+            while True:
+                time_input = input("Please enter a time in the following format \"HH:MM AM\" or \"HH:MM PM\":")
+                # Use regular expression to validate the input
+                if re.match(r'^\d{1,2}:\d{2} (AM|PM)$', time_input):
+                    try:
+                        # Parse the input into a datetime object
+                        time = datetime.strptime(time_input, "%I:%M %p")
+                        break
+                    except ValueError:
+                        print("Invalid time format. Please try again.")
+                else:
+                    print("Invalid time format. Please use \"HH:MM AM\" or \"HH:MM PM\" format.")
+            selected_package_id = str(input("Please enter the package id:"))
+            if packageDataTable[selected_package_id] is not None:
+                display_package_status(time_input, selected_package_id)
+            else:
+                print("Package id doesn't exists. Please try again")
+        elif menu_choice == "2":
+            display_total_mileage()
+        elif menu_choice == "3":
+            print("Exiting the program.")
+            exit()
+        else:
+            print("Invalid choice. Please enter your choice as 1, 2, or 3.")
 
 
 # set global variable for the maximum travel distance allowed and the number of packages that need to be delivered
@@ -223,30 +323,6 @@ delivery_route(truck2)
 change_trucks(truck1, truck3)
 load_truck3()
 delivery_route(truck3)
-
 data_saver = SaveData()
 data_saver.output_to_csv(packageDataTable)
-
-print("Truck 1 Info:")
-print(
-    f"Number of items in the truck1.packages list: {len(truck1.packages)} minutes: {truck1.minutes_traveled} miles: {truck1.miles_traveled}")
-for items in truck1.packages:
-    print(
-        f'package info: {items} id: {packageDataTable[items].delivery_status} time: {packageDataTable[items].time_delivered.strftime("%I:%M %p")}')
-
-print("Truck 2 Info:")
-print(
-    f"Number of items in the truck2.packages list: {len(truck2.packages)} minutes: {truck2.minutes_traveled} miles: {truck2.miles_traveled}")
-for items in truck2.packages:
-    print(f'package info: {items} id: {packageDataTable[items].delivery_status}')
-
-print("Truck 3 Info:")
-print(
-    f"Number of items in the truck3.packages list: {len(truck3.packages)} minutes: {truck3.minutes_traveled} miles: {truck3.miles_traveled}")
-for items in truck3.packages:
-    print(f'package info: {items} id: {packageDataTable[items].delivery_status}')
-
-for key, value in packageDataTable.items():
-    if key is not None:
-        print(
-            f'truck: {value.truck.truck_id} package info: {key} status: {value.delivery_status} time: {value.time_delivered.strftime("%I:%M %p")}')
+menu()
