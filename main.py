@@ -239,16 +239,27 @@ def display_package_status(time_in, selected_package_id):
         status = "Delivered"
     elif ((truck == 1 and truck1.start_delivery_time < time_input)
           or (truck == 2 and truck2.start_delivery_time < time_input)
-          or (truck == 1 and truck1.start_delivery_time < time_input)):
+          or (truck == 3 and truck3.start_delivery_time < time_input)):
         status = "En Route"
     else:
         status = "At The Hub"
-    print(f"\nInformation regarding your selected package as of : {time_input.strftime("%I:%M %p")}")
     if status == "Delivered":
-        print(f"Package ID:{selected_package_id}")
-        print(f"Status: {status} at {packageDataTable[id].time_delivered.strftime("%I:%M %p")}")
+        print(f"Package {selected_package_id} {status} at {packageDataTable[id].time_delivered.strftime("%I:%M %p")}")
     else:
-        print(f"Package ID:{selected_package_id} \nStatus: {status} as of {time_input.strftime("%I:%M %p")}")
+        print(f"Package {selected_package_id} {status} as of {time_input.strftime("%I:%M %p")}")
+
+
+# TODO Provide screenshots to show the status of all packages loaded onto each truck at a time between:
+#  8:35 a.m. and 9:25 a.m.
+#  9:35 a.m. and 10:25 a.m
+#  12:03 p.m. and 1:12 p.m
+def display_package_status_for_all_packages(truck, time_in):
+    time_input = datetime.strptime(time_in, "%I:%M %p")
+    print(f"\nALL Packages loaded on each truck {truck.truck_id} as of as of {time_input.strftime("%I:%M %p")}")
+    for items in truck.packages:
+        display_package_status(time_in, items)
+    pass
+
 
 
 # Provide an intuitive interface for the user to view the delivery status (including the delivery time) of any package
@@ -276,11 +287,28 @@ def menu():
                         print("Invalid time format. Please try again.")
                 else:
                     print("Invalid time format. Please use \"HH:MM AM\" or \"HH:MM PM\" format.")
-            selected_package_id = str(input("Please enter the package id:"))
-            if packageDataTable[selected_package_id] is not None:
-                display_package_status(time_input, selected_package_id)
-            else:
-                print("Package id doesn't exists. Please try again")
+            while True:
+                print("\nPackage Delivery Status Menu")
+                print("1. View Package Delivery Status for a single package")
+                print("2. View Package Delivery Status for ALL packages on Trucks")
+                print("3. Exit")
+                sub_menu_choice = input("\nPlease enter your choice as 1 or 2:")
+                if sub_menu_choice == "1":
+                    selected_package_id = str(input("Please enter the package id:"))
+                    if packageDataTable[selected_package_id] is not None:
+                        print(f"\nInformation regarding your selected package as of : {time_input.strftime("%I:%M %p")}")
+                        display_package_status(time_input, selected_package_id)
+                    else:
+                        print("Package id doesn't exists. Please try again")
+                elif sub_menu_choice == '2':
+                    display_package_status_for_all_packages(truck1, time_input)
+                    display_package_status_for_all_packages(truck2, time_input)
+                    display_package_status_for_all_packages(truck3, time_input)
+                elif menu_choice == "3":
+                    print("Exiting the program.")
+                    exit()
+                else:
+                    print("Invalid choice. Please enter your choice as 1, 2, or 3.")
         elif menu_choice == "2":
             display_total_mileage()
         elif menu_choice == "3":
