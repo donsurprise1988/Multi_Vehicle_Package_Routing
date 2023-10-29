@@ -1,7 +1,10 @@
 # Read data from the CSV file
 import csv
+from datetime import datetime
 
+from hashtable import HashTable
 from package import Package
+
 
 # Loads the data from the provide csv's using the csv library
 # Instantiated and called in main.py
@@ -9,7 +12,9 @@ from package import Package
 class LoadData:
     def __init__(self):
         pass
-    def load_data_csv(self, distanceIndexMatch=None, distance_matrix=None, packageDataTable=None):
+
+    def load_data_csv(self, distanceIndexMatch=None, distance_matrix=None, packageDataTable=None, truck1=None,
+                      truck2=None, truck3=None):
         with open('Distance.csv', 'r') as csv_file:
             csv_reader = csv.reader(csv_file)
             next(csv_reader)  # Skip the header
@@ -34,7 +39,32 @@ class LoadData:
             next(csv_reader_packages)  # Skip the header
 
             for row in csv_reader_packages:
-                ID, Address, City, State, Zip, Deadline, Weight, Available, notes = row
-                key = ID
-                value = Package(ID, Address, City, State, Zip, Deadline, Weight, notes, Available)
-                packageDataTable.set(key, value)  # Store the id as the key and the package object as the value
+                ID, Address, City, State, Zip, Deadline, Weight, notes = row
+                key_package = ID
+                Available = "8:00 AM"
+                value_package = Package(ID, Address, City, State, Zip, Deadline, Weight, notes, Available)
+                if ID == '25' or ID == '6' or ID == '18' or ID == '3' or ID == '36' or ID == '38' or ID == '32' or ID == '28':
+                    if ID == '25' or ID == '6' or ID == '32' or ID == '28':
+                        value_package.available = datetime.strptime("9:05 AM", "%I:%M %p")
+                    value_package.truck = truck2
+                    value_package.delivery_status = "On Truck"
+                    packageDataTable[key_package] = value_package
+                    truck2.packages.append(key_package)
+                elif (ID == '15' or ID == '15' or ID == '14' or ID == '20' or ID == '13' or ID == '16' or ID == '29'
+                      or ID == '1' or ID == '34' or ID == '31' or ID == '30' or ID == '40' or ID == '37' or ID == '19'
+                      or ID == '10' or ID == '5' or ID == '8'):
+                    value_package.truck = truck1
+                    value_package.delivery_status = "On Truck"
+                    packageDataTable[key_package] = value_package
+                    truck1.packages.append(key_package)
+                elif ID == '9':
+                    value_package.available = datetime.strptime("10:20 AM", "%I:%M %p")
+                    value_package.truck = truck3
+                    value_package.delivery_status = "On Truck"
+                    packageDataTable[key_package] = value_package
+                    truck3.packages.append(key_package)
+                else:
+                    value_package.truck = truck3
+                    value_package.delivery_status = "On Truck"
+                    packageDataTable[key_package] = value_package
+                    truck3.packages.append(key_package)

@@ -89,4 +89,9 @@ class HashTable:
     def __iter__(self):
         return iter(self.items())
 
+    # Clear contents on hash table
+    def clear(self):
+        self.hashmap = [[] for _ in range(0, self.size)]  # Reset the hash table to an empty state
+        self.count = 0  # Reset the element count to zero
+
 

@@ -12,7 +12,7 @@ class Package:
         self.zip = zip
         # Parse the deadline time
         if deadline == "EOD":
-            self.deadline = datetime.strptime("5:00 PM", "%I:%M %p")
+            self.deadline = "EOD"
         else:
             self.deadline = datetime.strptime(deadline, "%I:%M %p")
         self.weight = weight
@@ -31,3 +31,10 @@ class Package:
         if isinstance(other, Package):
             return self.package_id == other.package_id
         return False
+
+    def full_address(self):
+        return f"{self.address}, {self.city}, {self.state} {self.zip}"
+
+    def lookup_package(self):
+        return (f"ID: {self.package_id} | Address: {self.full_address()} | Deadline: {self.deadline} "
+                f"| Weight: {self.weight} | Delivery Status: {self.delivery_status} {self.time_delivered} | {self.truck.truck_id}")
