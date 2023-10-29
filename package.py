@@ -36,5 +36,4 @@ class Package:
         return f"{self.address}, {self.city}, {self.state} {self.zip}"
 
     def lookup_package(self):
-        return (f"ID: {self.package_id} | Address: {self.full_address()} | Deadline: {self.deadline} "
-                f"| Weight: {self.weight} | Delivery Status: {self.delivery_status} {self.time_delivered} | {self.truck.truck_id}")
+        return (f"Package ID: {self.package_id}  Address: {self.full_address()}  Weight: {self.weight}  Deadline: {self.deadline} ")

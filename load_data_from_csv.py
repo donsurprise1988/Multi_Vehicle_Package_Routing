@@ -13,6 +13,8 @@ class LoadData:
     def __init__(self):
         pass
 
+    # Time Complexity: O(N) + O(N) + O(N) = O(N)
+    # Space Complexity: O(1)
     def load_data_csv(self, distanceIndexMatch=None, distance_matrix=None, packageDataTable=None, truck1=None,
                       truck2=None, truck3=None):
         with open('Distance.csv', 'r') as csv_file:
@@ -43,6 +45,7 @@ class LoadData:
                 key_package = ID
                 Available = "8:00 AM"
                 value_package = Package(ID, Address, City, State, Zip, Deadline, Weight, notes, Available)
+                # manually assign packages to trucks based on predetermined method
                 if ID == '25' or ID == '6' or ID == '18' or ID == '3' or ID == '36' or ID == '38' or ID == '32' or ID == '28':
                     if ID == '25' or ID == '6' or ID == '32' or ID == '28':
                         value_package.available = datetime.strptime("9:05 AM", "%I:%M %p")

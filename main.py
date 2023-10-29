@@ -8,8 +8,10 @@ from save_to_csv import SaveData
 from truck import Truck
 
 
-# Function to calculate minutes traveled by using the truck object, and the indexes of the two location points
+# Function to calculate minutes traveled by using the truck object, and the distance location graph
 # The function is used in the deliver_next_package function
+# Time complexity O(1)
+# Space complexity O(1)
 def minutes_traveled(truck, location_id_from, location_id_to):
     from_address_id = int(location_id_from)
     to_address_id = int(location_id_to)
@@ -18,6 +20,10 @@ def minutes_traveled(truck, location_id_from, location_id_to):
     truck.minutes_traveled += minutes  # minutes are added to the truck objects minutes attribute
 
 
+# Update package and truck info when it's delivered
+# Calls minutes_traveled to update the time and uses distance location graph for distance
+# Time complexity O(1)
+# Space complexity O(1)
 def update_delivered_package(package_id, truck, shortest_distance):
     packageDataTable[package_id].delivery_status = "Delivered"
     minutes_traveled(truck, truck.current_location_id, int(distanceIndexMatch[packageDataTable[package_id].address]))
@@ -27,12 +33,13 @@ def update_delivered_package(package_id, truck, shortest_distance):
 
 
 # The main goal of this function is to find the next package for delivery based on proximity.
-# Greedy algorithm that iterates through the package data table (items) and truck object packages
-# to find the next shortest distance package to deliver.
+# Greedy algorithm that iterates through the list of truck object packages
 # it uses the truck object to look at the packages that are on the truck, filter out packages that are already delivered
-# it uses the distance_matrix to find the distance and compare it to the other distances
+# it uses the distance_matrix graph to find the distance and compare it to the other distances
 # Once the shortest distance has been found, it marks the package as delivered, calculates the time traveled for truck,
 # updates the time package was delivered in the Package object in the packages hash table
+# Time complexity O(N)
+# Space complexity O(1)
 def shortest_path_algorithm(truck):
     shortest_distance = float('inf')  # Initialize to positive infinity
     shortest_distance_package_id = None
@@ -47,18 +54,11 @@ def shortest_path_algorithm(truck):
         update_delivered_package(shortest_distance_package_id, truck, shortest_distance)
 
 
-# This function considers multiple categories of packages ("Deliver Together," "delayedDeadLine1030," "deadline1030")
-# in order to make sure packages with earlier deadlines are considered first. It then uses the greedy algorithm
-# shortest_path_algorithm within each package category. This allows the program to optimize the delivery order
-# of packages based on specific categories or constraints. After taking care of the constraints, it then applies the
-# shortest_path_algorithm within all the remaining packages on the truck
-def shortest_next_delivery(truck):
-    for key, value in packageDataTable.items():
-        shortest_path_algorithm(truck)
-
-
-# Function to set delivery start time based on the latest time that a package on the truck becomes available
+# Function to find the earliest time that a truck can start delivering packages
+# ime based on the latest time that a package on the truck becomes available
 # It's used by the delivery_route function to set the start time for the deliveries
+# Time complexity O(N)
+# Space complexity O(1)
 def start_delivery_route(truck):
     start_route_time = datetime.strptime("8:00 AM", "%I:%M %p")
     for item in truck.packages:
@@ -68,20 +68,24 @@ def start_delivery_route(truck):
     truck.start_delivery_time = start_route_time
 
 
-# This function uses the start_delivery_route to set the initial delivery start time for a truck.
-# Then, it iterates through the packages on the truck and uses shortest_next_delivery to determine the delivery order.
-# This ensures that packages are delivered in an optimized sequence based on the nearest neighbor-like approach and
-# any additional constraints from the previous function.
+# Sets the delivery start time and the delivers the packages for the truck
+# uses the start_delivery_route to set the initial delivery start time for a truck.
+# Then, it iterates through the packages on the truck and uses shortest_path_algorithm to deliver the packages.
+# This ensures that packages are delivered based on the nearest neighbor approach and
+# Time complexity O(N)
+# Space complexity O(1)
 def delivery_route(truck):
     start_delivery_route(truck)
     for item in truck.packages:
-        shortest_next_delivery(truck)
+        shortest_path_algorithm(truck)
 
 
 # Function to change trucks since there are only two drivers and packages are loaded on all three trucks
 # Responsible for managing the transition of packages and responsibilities from the current truck to the next truck.
 # It ensures that packages are delivered efficiently and takes into account the availability of the next truck
-# and the time needed for the current truck to return to the hub.
+#  and the time needed for the current truck to return to the hub.
+# Time complexity O(N)
+# Space complexity O(1)
 def change_trucks(truck_current, truck_next):
     truck_current_last_package_delivered = '0'
     latest_delivery_time = datetime.strptime("8:00 AM", "%I:%M %p")
@@ -110,6 +114,8 @@ def change_trucks(truck_current, truck_next):
 # It calculates the distance traveled to the hub from the current location of the truck using the distance_matrix.
 # The time taken to return to the hub is calculated based on the distance traveled and the truck's average speed.
 # The total time is calculated by adding the time already spent on the road (truck.minutes_traveled) to the return time.
+# Time complexity O(1)
+# Space complexity O(1)
 def return_to_hub(truck):
     distance_traveled_to_hub = distance_matrix[int(truck.current_location_id)][0]
     # minutes are calculated using distance traveled and truck speed
@@ -119,7 +125,10 @@ def return_to_hub(truck):
     return f"{time_returned.strftime("%I:%M %p")}"
 
 
-# This function calculates the total distance traveled by a given truck.
+# This function calculates the total distance traveled by a given truck by using the truck's miles traveled and adding
+# the distances it takes for the truck to travel back from the last delivered package
+# Time complexity O(1)
+# Space complexity O(1)
 def total_distance_traveled(truck):
     current_distance = truck.miles_traveled
     distance_traveled_to_hub = distance_matrix[int(truck.current_location_id)][0]
@@ -127,6 +136,8 @@ def total_distance_traveled(truck):
 
 
 # Displays the mileage by truck and total mileage for all trucks
+# Time complexity O(1)
+# Space complexity O(1)
 def display_total_mileage():
     truck1_distance = round(total_distance_traveled(truck1), 2)
     truck2_distance = round(total_distance_traveled(truck2), 2)
@@ -144,6 +155,8 @@ def display_total_mileage():
 
 # Updates Package 9 information with the correct address information
 # It's used in the display package status function to update the info if time constraint is met
+# Time complexity O(1)
+# Space complexity O(1)
 def update_package_9():
     packageDataTable['9'].address = "410 S.StateSt."
     packageDataTable['9'].city = "Salt Lake City"
@@ -152,7 +165,11 @@ def update_package_9():
 
 
 # Function displays information about a single package by taking in the time and pakcage id as input
+# compares the time entered by the user with the packages time of delivery and displays information based on this
+# It updates package 9 if the user time is 10:20 AM or later
 # It's used in the display package status for all packages function and in the menu function
+# Time complexity O(1)
+# Space complexity O(1)
 def display_package_status(time_in, selected_package_id):
     id = selected_package_id
     time_input = datetime.strptime(time_in, "%I:%M %p")
@@ -170,19 +187,22 @@ def display_package_status(time_in, selected_package_id):
     else:
         status = "At The Hub"
     if status == "Delivered":
-        print(f"Package {selected_package_id} {status} at {packageDataTable[id].time_delivered.strftime("%I:%M %p")} "
-              f"to {packageDataTable[id].full_address()} on Truck {packageDataTable[id].truck.truck_id}")
+        print(f"{packageDataTable[id].lookup_package()} {status} at {packageDataTable[id].time_delivered.strftime("%I:%M %p")} "
+              f"on Truck {packageDataTable[id].truck.truck_id}")
     elif status == "En Route":
-        print(f"Package {selected_package_id} {status} as of {time_input.strftime("%I:%M %p")}"
-              f" to {packageDataTable[id].full_address()} on Truck {packageDataTable[id].truck.truck_id}")
+        print(f"{packageDataTable[id].lookup_package()} {status} as of {time_input.strftime("%I:%M %p")}"
+              f" on Truck {packageDataTable[id].truck.truck_id}")
     else:
-        print(f"Package {selected_package_id} {status} as of {time_input.strftime("%I:%M %p")}")
+        print(f"{packageDataTable[id].lookup_package()} {status} as of {time_input.strftime("%I:%M %p")}")
 
 
 # Look-up function displays information on all packages on all trucks by taking the truck and time as input
+# use the display_package_status function above to display package information as it iterates through all packages
+# Time complexity O(N)
+# Space complexity O(1)
 def display_package_status_for_all_packages(time_in):
     time_input = datetime.strptime(time_in, "%I:%M %p")
-    print(f"\nInformation for ALL packages {time_input.strftime("%I:%M %p")}")
+    print(f"\nInformation for ALL packages as of {time_input.strftime("%I:%M %p")}")
     for key, value in packageDataTable.items():
         display_package_status(time_in, key)
 
@@ -191,6 +211,8 @@ def display_package_status_for_all_packages(time_in):
 # at any time and the total mileage traveled by all trucks. (The delivery status reports the package as
 # at the hub, en route, or delivered. Delivery status must include the time.)
 # The function continues to loop until it is exited by user
+# Time complexity - difficult to determine due to user input and recursive nature of the menu
+# Space complexity O(1)
 def menu():
     time_input = None
     selected_package_id = None
@@ -266,7 +288,7 @@ truck3 = Truck(3, None)
 data_loader = LoadData()
 data_loader.load_data_csv(distanceIndexMatch, distance_matrix, packageDataTable, truck1, truck2, truck3)
 
-# The program starts by calling the load function and delivery function for Truck 1 and 2
+# The program starts by calling the delivery function for Truck 1 and 2, changing trucks, and then deliverying truck3
 delivery_route(truck1)
 delivery_route(truck2)
 change_trucks(truck1, truck3)
