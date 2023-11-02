@@ -36,4 +36,10 @@ class Package:
         return f"{self.address}, {self.city}, {self.state} {self.zip}"
 
     def lookup_package(self):
-        return (f"Package ID: {self.package_id}  Address: {self.full_address()}  Weight: {self.weight}  Deadline: {self.deadline} ")
+        deadline = self.deadline
+        if deadline == "EOD":
+            deadline = "EDO"
+        else:
+            deadline = deadline.strftime("%I:%M %p")
+        return (f"Package ID: {self.package_id}  Address: {self.full_address()}  "
+                f"Weight: {self.weight}  Deadline: {deadline} ")

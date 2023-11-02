@@ -72,7 +72,7 @@ def start_delivery_route(truck):
 # uses the start_delivery_route to set the initial delivery start time for a truck.
 # Then, it iterates through the packages on the truck and uses shortest_path_algorithm to deliver the packages.
 # This ensures that packages are delivered based on the nearest neighbor approach and
-# Time complexity O(N)
+# Time complexity O(N^2) since it calls the start_delivery_route(truck) function which is O(N)
 # Space complexity O(1)
 def delivery_route(truck):
     start_delivery_route(truck)
@@ -143,14 +143,18 @@ def display_total_mileage():
     truck2_distance = round(total_distance_traveled(truck2), 2)
     truck3_distance = round(total_distance_traveled(truck3), 2)
     total_distance = truck1_distance + truck2_distance + truck3_distance
-    print(f"\nTruck 1 has finished its route and returned to the hub at {return_to_hub(truck1)} with a total distance "
-          f"traveled of {round(truck1_distance, 2)} miles")
-    print(f"Truck 2 has finished its route and returned to the hub at {return_to_hub(truck2)} with a total distance "
-          f"traveled of {round(truck2_distance, 2)} miles")
-    print(f"Truck 3 has finished its route and returned to the hub at {return_to_hub(truck3)} with a total distance "
-          f"traveled of {round(truck3_distance, 2)} miles")
-    print(
-        f"Total Distance Traveled for all Trucks: {round(total_distance, 2)} miles")
+    if total_distance < 140:
+        print(f"\nTruck 1 has finished its route and returned to the hub at {return_to_hub(truck1)} with a total distance "
+              f"traveled of {round(truck1_distance, 2)} miles")
+        print(f"Truck 2 has finished its route and returned to the hub at {return_to_hub(truck2)} with a total distance "
+              f"traveled of {round(truck2_distance, 2)} miles")
+        print(f"Truck 3 has finished its route and returned to the hub at {return_to_hub(truck3)} with a total distance "
+              f"traveled of {round(truck3_distance, 2)} miles")
+        print(
+            f"Total Distance Traveled for all Trucks: {round(total_distance, 2)} miles")
+    else:
+        # check to make sure total distance meets requirements
+        print(f"Total distance of {total_distance} is greater thatn the 140 mile requirement!!!")
 
 
 # Updates Package 9 information with the correct address information
@@ -217,6 +221,10 @@ def menu():
     time_input = None
     selected_package_id = None
     # Prints all the total distance traveled for all trucks
+    # check to make sure all packages are delivered within deadline requirements
+    for key, value in packageDataTable.items():
+        if value.deadline != "EOD" and value.deadline < value.time_delivered:
+            print(f"Package {key} is late!!! Deadline was {value.deadline} delivered at {value.time_delivered}")
     display_total_mileage()
     while True:
         print("\nMenu")

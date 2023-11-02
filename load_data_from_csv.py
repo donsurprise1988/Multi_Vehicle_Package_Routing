@@ -13,8 +13,8 @@ class LoadData:
     def __init__(self):
         pass
 
-    # Time Complexity: O(N) + O(N) + O(N) = O(N)
-    # Space Complexity: O(1)
+    # Time Complexity: O(N^2) - 2D array for distance matrix
+    # Space Complexity: O(N^2) - 2D array for distance matrix
     def load_data_csv(self, distanceIndexMatch=None, distance_matrix=None, packageDataTable=None, truck1=None,
                       truck2=None, truck3=None):
         with open('Distance.csv', 'r') as csv_file:
