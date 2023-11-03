@@ -47,7 +47,7 @@ class HashTable:
 
     # The set method is used to add or update a key-value pair in the hash table.
     # Time Complexity: O(1) - In the worst case, where there are many hash collisions, it can approach O(N)
-    # as all elements need to be checked. On average, it's closer to O(1) with good hashing and load factor management.
+    # as all elements need to be checked. On average, it's closer to O(1).
     # Space Complexity: O(1)
     def set(self, key, value):
         hash_key = self.hashing_function(key)

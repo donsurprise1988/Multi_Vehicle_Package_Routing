@@ -275,7 +275,7 @@ def menu():
 
 
 # create hashtable for storing the packages
-packageDataTable = HashTable(101)
+packageDataTable = HashTable(1)
 
 # Create Index hash table for addresses to use for lookups
 distanceIndexMatch = HashTable(1)
@@ -285,7 +285,7 @@ distance_matrix = []
 
 # Create a hash table to store the packages remaining at the hub.
 # Will be used for reporting package information at specific times
-packages_remaining_at_the_hub = HashTable(40)
+packages_remaining_at_the_hub = HashTable(1)
 
 # Instantiate the three trucks. Assign the two drivers to truck 1 and truck 2
 truck1 = Truck(1, "A")
